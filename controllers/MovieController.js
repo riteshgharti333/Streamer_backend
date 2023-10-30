@@ -22,7 +22,29 @@ export const getAllMovies = catchAsyncError(async (req, res, next) => {
   });
 });
 
-export const random = catchAsyncError(async (req, res, next) => {});
+export const random = catchAsyncError(async (req, res, next) => {
+
+ const type = req.query.type;
+ let movie;
+
+ if (type === "series") {
+  movie = await Movie.aggregate([
+    { $match: { isSeries: true } },
+    { $sample: { size: 1 } },
+  ]);
+} else {
+  movie = await Movie.aggregate([
+    { $match: { isSeries: false } },
+    { $sample: { size: 1 } },
+  ]);
+}
+
+
+res.status(200).json({
+  message: true,
+  movie
+})
+});
 
 export const getMovie = catchAsyncError(async (req, res, next) => {
   const getMovie = await Movie.findById(req.params.id);

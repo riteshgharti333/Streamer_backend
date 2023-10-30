@@ -9,6 +9,4 @@ router.delete("/:id" , deleteList);
 router.get("/" , getList);
 
 
-
-
 export default router;
