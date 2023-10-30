@@ -30,5 +30,11 @@ export const deleteList = catchAsyncError(async (req, res, next) => {
 
 });
 export const getList = catchAsyncError(async (req, res, next) => {
-   
+    const { type } = req.query;
+
+    const movies = await List.find({ type });
+    res.status(200).json({
+      success: true,
+      movies,
+    }); 
 });
