@@ -30,12 +30,12 @@ export const random = catchAsyncError(async (req, res, next) => {
  if (type === "series") {
   movie = await Movie.aggregate([
     { $match: { isSeries: true } },
-    { $sample: { size: 1 } },
+    { $sample: { size: 6 } },
   ]);
 } else {
   movie = await Movie.aggregate([
     { $match: { isSeries: false } },
-    { $sample: { size: 1 } },
+    { $sample: { size: 6 } },
   ]);
 }
 
