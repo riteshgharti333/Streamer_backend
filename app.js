@@ -3,9 +3,11 @@ import {config} from "dotenv";
 import cookieParser from "cookie-parser"; 
 import cors from "cors";
 import { errorMiddleware } from "./middlewares/error.js";
-import userRouter from "./routes/userRoute.js";
+import authRouter from "./routes/authRoute.js";
 import movieRouter from "./routes/movieRoute.js";
 import listRouter from "./routes/listRoute.js";
+import SubscriptionRouter from "./routes/subscriptionRoute.js"
+
 
 export const app = express();
 
@@ -25,9 +27,11 @@ app.use(
 )
 
 // Using Routes
-app.use("/api/auth", userRouter)
+app.use("/api/auth", authRouter)
 app.use("/api/movies", movieRouter)
 app.use("/api/list", listRouter)
+app.use("/api/subscription",SubscriptionRouter)
+
 
 
 app.get("/" , (req,res) => {

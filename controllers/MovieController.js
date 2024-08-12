@@ -2,6 +2,9 @@ import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Movie } from "../models/movieModel.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
+
+// CREATE MOVIE
+
 export const createMovie = catchAsyncError(async (req, res, next) => {
   const newMovie = new Movie(req.body);
 
@@ -13,14 +16,19 @@ export const createMovie = catchAsyncError(async (req, res, next) => {
   });
 });
 
+
+// GET ALL MOVIES
+
 export const getAllMovies = catchAsyncError(async (req, res, next) => {
-  const movies = await Movie.find();
+  const movies = await Movie.find() .sort({ createdAt: -1 });
 
   res.status(201).json({
     success: true,
     movies,
   });
 });
+
+// GET RANDOM MOVIES
 
 export const random = catchAsyncError(async (req, res, next) => {
 
@@ -46,6 +54,8 @@ res.status(200).json({
 })
 });
 
+// GET SINGLE MOVIE
+
 export const getMovie = catchAsyncError(async (req, res, next) => {
   const getMovie = await Movie.findById(req.params.id);
 
@@ -57,6 +67,9 @@ export const getMovie = catchAsyncError(async (req, res, next) => {
   });
 });
 
+
+// DELETE MOVIE
+
 export const deleteMovie = catchAsyncError(async (req, res, next) => {
   const deleteMovie = await Movie.findByIdAndDelete(req.params.id);
 
@@ -67,6 +80,8 @@ export const deleteMovie = catchAsyncError(async (req, res, next) => {
     message: "Movie Deleted",
   });
 });
+
+// UPDATE MOVIE
 
 export const updateMovie = catchAsyncError(async (req, res, next) => {
   const updateMovie = await Movie.findByIdAndUpdate(
@@ -84,3 +99,39 @@ export const updateMovie = catchAsyncError(async (req, res, next) => {
     updateMovie,
   });
 });
+
+
+// GET GENRE MOVIES
+export const queryMovie = catchAsyncError(async (req, res, next) => {
+  const { genre, type } = req.query;
+
+  // Build the query object
+  let query = {};
+
+  if (genre) {
+    query.genre = genre;
+  }
+
+  if (type) {
+    if (type === 'webseries') {
+      query.isSeries = true;
+    } else if (type === 'movies') {
+      query.isSeries = false;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid type specified',
+      });
+    }
+  }
+
+  const movies = await Movie.find(query);
+
+  res.status(200).json({
+    success: true,
+    movies,
+  });
+});
+
+
+
