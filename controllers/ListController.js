@@ -29,12 +29,30 @@ export const deleteList = catchAsyncError(async (req, res, next) => {
     })
 
 });
-export const getList = catchAsyncError(async (req, res, next) => {
-    const { type } = req.query;
 
-    const movies = await List.find({ type });
-    res.status(200).json({
-      success: true,
-      movies,
-    }); 
-});
+export const getList = catchAsyncError(async (req, res, next) => {
+    const { type, genre } = req.query;
+  
+    // Build the query object
+    let query = {};
+  
+    if (type) {
+      query.type = type; // Filter by type if provided
+    }
+  
+    if (genre) {
+      query.genre = genre; // Filter by genre if provided
+    }
+  
+    try {
+      const movies = await List.find(query);
+  
+      res.status(200).json({
+        success: true,
+        movies,
+      });
+    } catch (error) {
+      next(error); // Handle errors
+    }
+  });
+  
