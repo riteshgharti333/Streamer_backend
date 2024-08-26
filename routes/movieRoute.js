@@ -1,5 +1,7 @@
 import express from "express";
+
 import { createMovie, deleteMovie, getAllMovies, getMovie, queryMovie, random, updateMovie } from "../controllers/MovieController.js";
+
 const router = express.Router();
 
 router.post("/newmovie", createMovie);

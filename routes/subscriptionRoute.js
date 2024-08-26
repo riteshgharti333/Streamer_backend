@@ -1,11 +1,16 @@
 import express from "express";
-const router = express.Router();
-import { createSubscription,updateSubscription,deleteSubscription,getAllSubscription } from "../controllers/SubscriptionsController.js";
 
+import {
+    createSubscription,
+    getSubscriptionStatus,
+  } from "../controllers/SubscriptionController.js";
+ 
 
-router.post("/createSubscription" ,createSubscription);
-router.put("/:id" , updateSubscription);
-router.delete("/:id" , deleteSubscription);
-router.get("/" , getAllSubscription);
-
-export default router;
+  const router = express.Router();
+  
+  router.post("/create", createSubscription);
+  
+  router.get("/status/:id", getSubscriptionStatus);
+  
+  export default router;
+  

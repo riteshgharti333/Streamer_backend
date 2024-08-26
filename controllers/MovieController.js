@@ -1,7 +1,7 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { Movie } from "../models/movieModel.js";
 import ErrorHandler from "../utils/errorHandler.js";
-
+import { removeDeletedMoviesFromAllLists } from "./ListController.js";
 
 // CREATE MOVIE
 
@@ -16,13 +16,12 @@ export const createMovie = catchAsyncError(async (req, res, next) => {
   });
 });
 
-
 // GET ALL MOVIES
 
 export const getAllMovies = catchAsyncError(async (req, res, next) => {
-  const movies = await Movie.find() .sort({ createdAt: -1 });
+  const movies = await Movie.find().sort({ createdAt: -1 });
 
-  res.status(201).json({
+  res.status(200).json({
     success: true,
     movies,
   });
@@ -31,27 +30,25 @@ export const getAllMovies = catchAsyncError(async (req, res, next) => {
 // GET RANDOM MOVIES
 
 export const random = catchAsyncError(async (req, res, next) => {
+  const type = req.query.type;
+  let movie;
 
- const type = req.query.type;
- let movie;
+  if (type === "series") {
+    movie = await Movie.aggregate([
+      { $match: { isSeries: true } },
+      { $sample: { size: 6 } },
+    ]);
+  } else {
+    movie = await Movie.aggregate([
+      { $match: { isSeries: false } },
+      { $sample: { size: 6 } },
+    ]);
+  }
 
- if (type === "series") {
-  movie = await Movie.aggregate([
-    { $match: { isSeries: true } },
-    { $sample: { size: 6 } },
-  ]);
-} else {
-  movie = await Movie.aggregate([
-    { $match: { isSeries: false } },
-    { $sample: { size: 6 } },
-  ]);
-}
-
-
-res.status(200).json({
-  message: true,
-  movie
-})
+  res.status(200).json({
+    message: true,
+    movie,
+  });
 });
 
 // GET SINGLE MOVIE
@@ -67,13 +64,16 @@ export const getMovie = catchAsyncError(async (req, res, next) => {
   });
 });
 
-
 // DELETE MOVIE
 
 export const deleteMovie = catchAsyncError(async (req, res, next) => {
-  const deleteMovie = await Movie.findByIdAndDelete(req.params.id);
+  const movieId = req.params.id;
 
-  if (!deleteMovie) return next(new Error("Movie not found!"));
+  const deleteMovie = await Movie.findByIdAndDelete(movieId);
+
+  if (!deleteMovie) return next(new Error("Movie not found!", 404));
+
+  await removeDeletedMoviesFromAllLists([movieId]);
 
   res.status(200).json({
     success: true,
@@ -100,7 +100,6 @@ export const updateMovie = catchAsyncError(async (req, res, next) => {
   });
 });
 
-
 // GET GENRE MOVIES
 export const queryMovie = catchAsyncError(async (req, res, next) => {
   const { genre, type } = req.query;
@@ -113,14 +112,14 @@ export const queryMovie = catchAsyncError(async (req, res, next) => {
   }
 
   if (type) {
-    if (type === 'webseries') {
+    if (type === "webseries") {
       query.isSeries = true;
-    } else if (type === 'movies') {
+    } else if (type === "movies") {
       query.isSeries = false;
     } else {
       return res.status(400).json({
         success: false,
-        message: 'Invalid type specified',
+        message: "Invalid type specified",
       });
     }
   }
@@ -132,6 +131,3 @@ export const queryMovie = catchAsyncError(async (req, res, next) => {
     movies,
   });
 });
-
-
-
