@@ -1,12 +1,27 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const SubscriptionSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, unique: true },
-    price: { type: String, required: true },
-    image: { type: String, required: true },
+const subscriptionSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', 
+    required: true
   },
-  { timestamps: true },
-);
+  plan: {
+    type: String,
+    enum: ['movies', 'web series', 'movies + web series'],
+    required: true
+  },
+  endDate: {
+    type: Date,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'expired'],
+    default: 'active'
+  }
+});
 
-export const Subscription = mongoose.model("Subscription", SubscriptionSchema);
+const Subscription = mongoose.model('Subscription', subscriptionSchema);
+
+export default Subscription;

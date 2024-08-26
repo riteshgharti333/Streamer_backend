@@ -1,12 +1,13 @@
 import express from "express";
-import {createList, updateList , deleteList ,getList} from "../controllers/ListController.js"
+import {createList, updateList , deleteList, getLists, getSingleList} from "../controllers/ListController.js"
 
 const router = express.Router();
 
+router.get("/" , getLists);
 router.post("/newlist" , createList);
+router.get("/:id" , getSingleList);
 router.put("/:id" , updateList);
 router.delete("/:id" , deleteList);
-router.get("/" , getList);
 
 
 export default router;
