@@ -1,62 +1,40 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
-import  mollieClient  from "../config/mollieConfig.js";
+import { stripe } from "../config/stripeConfig.js";
+
+
+export const createCustomer = catchAsyncError(async (req, res, next) => {
+  try {
+    const { email, payment_method } = req.body;
+
+    const customer = await stripe.customers.create({
+      email,
+      payment_method,
+      invoice_settings: {
+        default_payment_method: payment_method,
+      },
+    });
+
+    res.json({ customer });
+  } catch (error) {
+    res.status(400).json({ error: { message: error.message } });
+  }
+});
 
 export const createSubscription = catchAsyncError(async (req, res, next) => {
-  const {
-    customerId,
-    amount,
-    times,
-    interval,
-    startDate, // Can be null or provided
-    description,
-    webhookUrl,
-  } = req.body;
-
-  // Get today's date in YYYY-MM-DD format
-  const todayDate = new Date().toISOString().split('T')[0];
-
-  // Use todayDate if startDate is not provided or in the past
-  const validatedStartDate = startDate && startDate >= todayDate ? startDate : todayDate;
-
   try {
-    const subscription = await mollieClient.customerSubscriptions.create({
-      customerId,
-      amount: {
-        currency: amount.currency,
-        value: amount.value,
-      },
-      times,
-      interval,
-      startDate: validatedStartDate,
-      description,
-      webhookUrl,
+    const { customerId, priceId } = req.body;
+
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: "default_incomplete",
+      expand: ["latest_invoice.payment_intent"],
     });
 
-    res.status(201).json({
-      success: true,
-      subscription,
-    });
+    res.json({ subscription });
   } catch (error) {
-    next(error); // Forward the error to the global error handler
-    console.log(error);
+    res.status(400).json({ error: { message: error.message } });
   }
 });
 
 
-export const getSubscriptionStatus = catchAsyncError(async (req, res, next) => {
-  const { subscriptionId } = req.params;
-
-  try {
-    const subscription = await mollieClient.customerSubscriptions.get(
-      subscriptionId
-    );
-
-    res.status(200).json({
-      success: true,
-      subscription,
-    });
-  } catch (error) {
-    next(error); // Forward the error to the global error handler
-    console.log(error)
-  }
-});

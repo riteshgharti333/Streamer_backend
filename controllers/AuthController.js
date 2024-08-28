@@ -5,6 +5,7 @@ import { sendCookie } from "../utils/features.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { createMollieClient } from '@mollie/api-client';
 
+
 const mollieClient = createMollieClient({ apiKey: 'test_HwFHQ4HSvhTAF7PMp2FpyJKfjwsJpH' });
 
 
