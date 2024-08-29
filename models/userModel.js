@@ -23,7 +23,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    customerId: { type: String },
+    subscriptionId: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
