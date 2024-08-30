@@ -1,18 +1,13 @@
 import mongoose from 'mongoose';
 
 const subscriptionSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Reference to the User model
-    required: true,
-  },
   name: { 
     type: String, 
-    required: true // Stripe customer ID or equivalent from your payment provider
+    required: true // User's name associated with the subscription
   },
   email: { 
     type: String, 
-    required: true // Stripe customer ID or equivalent from your payment provider
+    required: true // User's email associated with the subscription
   },
   customerId: { 
     type: String, 
@@ -33,7 +28,13 @@ const subscriptionSchema = new mongoose.Schema({
   },
   endDate: { 
     type: Date, 
-    required: true 
+    required: true,
+    validate: {
+      validator: function(value) {
+        return this.startDate < value;
+      },
+      message: 'End date must be after start date',
+    },
   },
   status: {
     type: String,
@@ -44,8 +45,9 @@ const subscriptionSchema = new mongoose.Schema({
     type: Number, 
     required: true 
   },
-  // Additional fields if needed
 });
+
+subscriptionSchema.index({ userId: 1 });
 
 const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
