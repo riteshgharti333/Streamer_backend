@@ -5,14 +5,19 @@ import Subscription from "../models/subscriptionModel.js";
 
 export const createCustomer = catchAsyncError(async (req, res, next) => {
   try {
-    const { email, payment_method } = req.body;
+    const { email, payment_method, name } = req.body;
 
     const customer = await stripe.customers.create({
       email,
+      name, // Add the user's name
       payment_method,
       invoice_settings: {
         default_payment_method: payment_method,
       },
+      metadata: {
+        // Optional: Store additional information if needed
+        userId: req.body.userId // Assuming userId is passed in the request body
+      }
     });
 
     res.json({ customer });
@@ -21,20 +26,24 @@ export const createCustomer = catchAsyncError(async (req, res, next) => {
   }
 });
 
-export const createSubscription = catchAsyncError(async (req, res, next) => {
+
+export const getCustomer = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params; // Get the customer ID from the request parameters
+
   try {
-    const { customerId, priceId } = req.body;
+    // Fetch the customer from Stripe using the provided ID
+    const customer = await stripe.customers.retrieve(id);
 
-    const subscription = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: priceId }],
-      payment_behavior: "default_incomplete",
-      expand: ["latest_invoice.payment_intent"],
-    });
-
-    res.json({ subscription });
+    res.status(200).json(customer); // Send the customer data back in the response
   } catch (error) {
-    res.status(400).json({ error: { message: error.message } });
+    console.error("Error fetching customer from Stripe:", error);
+
+    // Handle errors, such as when the customer ID is invalid
+    if (error.type === "StripeInvalidRequestError") {
+      res.status(400).json({ error: "Invalid customer ID" });
+    } else {
+      res.status(500).json({ error: "Failed to fetch customer" });
+    }
   }
 });
 
@@ -60,19 +69,6 @@ export const createSubscriptionSession = catchAsyncError(
         success_url: "http://localhost:5173/subscriptions",
         cancel_url: "http://localhost:5173/subscriptions",
       });
-
-      // Find the user in the database
-      const user = await User.findOne({ email });
-
-      // console.log(session);
-
-      if (user) {
-        // Update user's document with the subscription session ID
-        user.subscriptionId = session.id; // Note: session.subscription may not exist, adjust based on your logic
-
-        // Save the updated user document
-        await user.save();
-      }
 
       // Send the session URL to the frontend
       res.json({ sessionUrl: session.url });
@@ -121,8 +117,32 @@ export const saveSubscription = catchAsyncError(async (req, res, next) => {
       price,
     });
 
-    res.status(201).json({ subscription });
+    await subscription.save();
+
+    res
+      .status(201)
+      .json({ message: "Subscription saved successfully", subscription });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: { message: error.message } });
+  }
+});
+
+export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
+  try {
+    const subscriptions = await stripe.subscriptions.list({ limit: 100 });
+
+    // Count the number of subscriptions
+    const subscriptionCount = subscriptions.data.length;
+
+    // Respond with the count and the list of subscriptions
+    res.status(200).json({
+      count: subscriptionCount,
+      subscriptions: subscriptions.data,
+    });
+  } catch (error) {
+    console.log(error);
+    console.error("Error fetching subscriptions from Stripe:", error);
+    res.status(500).json({ error: "Failed to fetch subscriptions" });
   }
 });

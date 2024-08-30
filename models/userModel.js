@@ -23,8 +23,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    subscriptionId: {
-      type: String,
+    subscription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null, // User starts without a subscription
     },
   },
   { timestamps: true }
