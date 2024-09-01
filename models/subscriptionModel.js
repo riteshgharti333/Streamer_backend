@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const subscriptionSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,  
+    ref: "User", 
+    required: true, 
+  },
   name: { 
     type: String, 
     required: true // User's name associated with the subscription
@@ -19,7 +24,6 @@ const subscriptionSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
-    enum: ['movies', 'web series', 'movies + web series'],
     required: true,
   },
   startDate: { 

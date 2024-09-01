@@ -23,11 +23,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    subscription: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Subscription",
-      default: null, // User starts without a subscription
-    },
+    subscriptions: [ // Array to store multiple subscriptions with details
+      {
+        subscription_id: String,
+        plan: String,
+        price: Number
+      }
+    ],
   },
   { timestamps: true }
 );

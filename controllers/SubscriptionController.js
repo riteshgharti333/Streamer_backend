@@ -47,10 +47,11 @@ export const getCustomer = catchAsyncError(async (req, res, next) => {
   }
 });
 
+
 export const createSubscriptionSession = catchAsyncError(
   async (req, res, next) => {
     try {
-      const { email, priceId } = req.body;
+      const { email, priceId, userId, name } = req.body;
 
       // Create the checkout session with Stripe
       const session = await stripe.checkout.sessions.create({
@@ -68,6 +69,10 @@ export const createSubscriptionSession = catchAsyncError(
         },
         success_url: "http://localhost:5173/subscriptions",
         cancel_url: "http://localhost:5173/subscriptions",
+        metadata: {
+          userId,  // User ID from your database
+          name,    // The plan user selected
+        },
       });
 
       // Send the session URL to the frontend
@@ -77,6 +82,7 @@ export const createSubscriptionSession = catchAsyncError(
     }
   }
 );
+
 
 export const getSubscriptionDetails = catchAsyncError(
   async (req, res, next) => {
@@ -92,41 +98,6 @@ export const getSubscriptionDetails = catchAsyncError(
     }
   }
 );
-
-export const saveSubscription = catchAsyncError(async (req, res, next) => {
-  try {
-    const {
-      userId,
-      customerId,
-      subscriptionId,
-      plan,
-      startDate,
-      endDate,
-      status,
-      price,
-    } = req.body;
-
-    const subscription = await Subscription.create({
-      userId,
-      customerId,
-      subscriptionId,
-      plan,
-      startDate,
-      endDate,
-      status,
-      price,
-    });
-
-    await subscription.save();
-
-    res
-      .status(201)
-      .json({ message: "Subscription saved successfully", subscription });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: { message: error.message } });
-  }
-});
 
 export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
   try {
