@@ -2,9 +2,8 @@ import express from "express";
 import { config } from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { stripe } from "./config/stripeConfig.js";
 import bodyParser from "body-parser";
-
+import { stripe } from "./config/stripeConfig.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import authRouter from "./routes/authRoute.js";
 import userRouter from "./routes/userRoute.js";
@@ -44,17 +43,15 @@ app.use(
 );
 
 // Set up Stripe webhook endpoint
-// Stripe requires the raw body to validate the webhook signature
-
 app.post(
   "/webhook",
   bodyParser.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
-    const endpointSecret =
-      "whsec_ca6852f0e8c237bcf3678e459b1447b5d2d602c0da92e9fdf4759036e80d6116"; // Use environment variable
+    const endpointSecret = "whsec_ca6852f0e8c237bcf3678e459b1447b5d2d602c0da92e9fdf4759036e80d6116";
 
     let event;
+
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
@@ -63,107 +60,143 @@ app.post(
     }
 
     switch (event.type) {
-      case "payment_intent.succeeded":
-        const paymentIntent = event.data.object;
-        const customerId = paymentIntent.customer;
-
-        try {
-          // Fetch the customer details
-          const customer = await stripe.customers.retrieve(customerId);
-
-          let subscription;
-          if (paymentIntent.subscription) {
-            subscription = await stripe.subscriptions.retrieve(paymentIntent.subscription);
-          }
-
-          return console.log("Subscription id ------------------->" + paymentIntent.subscription);
-
-          const subscriptionData = {
-            customerId: customerId,
-            subscriptionId: paymentIntent.subscription,
-            plan: paymentIntent.metadata.plan,
-            startDate: new Date(paymentIntent.created * 1000).toISOString(),
-            endDate: new Date(
-              paymentIntent.created * 1000 + 30 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            status: "active",
-            price: paymentIntent.metadata.amount,
-            email: customer.email, // Get email from customer object
-            name: customer.name, // Get name from customer object
-          };
-
-          console.log("Creating subscription with data:", subscriptionData);
-
-          const newSubscription = new Subscription(subscriptionData);
-
-          await newSubscription.save();
-
-          // Link the subscription to the user
-          await User.findByIdAndUpdate(paymentIntent.metadata.userId, {
-            subscription: newSubscription._id,
-          });
-
-          res.status(200).send("Success");
-        } catch (error) {
-          console.error(
-            "Error saving subscription or fetching customer:",
-            error
-          );
-          res.status(500).send("Failed to save subscription");
-        }
-        break;
-      case "customer.subscription.created":
-        handleSubscriptionCreated(event.data.object);
-        break;
-      case "customer.subscription.updated":
-        handleSubscriptionUpdated(event.data.object);
-        break;
-      case "customer.subscription.deleted":
-        handleSubscriptionDeleted(event.data.object);
+      case "checkout.session.completed":
+    
+        await handleCheckoutSessionCompleted(event.data.object);
         break;
       case "invoice.payment_succeeded":
-        handlePaymentSucceeded(event.data.object);
+        await handlePaymentSucceeded(event.data.object);
         break;
-      case "invoice.payment_failed":
-        handlePaymentFailed(event.data.object);
+      case "customer.subscription.created":
+        await handleSubscriptionCreated(event.data.object);
+        break;
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(event.data.object);
         break;
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
 
-    // Respond to Stripe to acknowledge receipt of the event
     res.json({ received: true });
   }
 );
 
 // Define functions to handle Stripe events
-const handleSubscriptionCreated = async (subscription) => {
+const handleCheckoutSessionCompleted = async (session) => {
   try {
+
+   
+
+    const subscriptionId = session.subscription;
+    if (!subscriptionId) throw new Error("No subscription ID found");
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+   
+    const subscriptionDescription = subscription.payment_settings.payment_method_options.card.mandate_options.description;
+
+    const subscriptionPrice = subscription.payment_settings.payment_method_options.card.mandate_options.amount;
+
+
+    const price = subscriptionPrice / 100;
+
     const subscriptionData = {
-      userId: subscription.metadata.userId, // Make sure to set metadata when creating subscriptions
+      userId: session.metadata.userId,
+      name: session.customer_details.name,
+      email: session.customer_email,
       customerId: subscription.customer,
       subscriptionId: subscription.id,
-      plan: subscription.items.data[0].price.id,
-      startDate: new Date(subscription.start_date * 1000),
+      plan: subscriptionDescription,
+      startDate: new Date(subscription.current_period_start * 1000),
       endDate: new Date(subscription.current_period_end * 1000),
-      status: subscription.status,
-      price: subscription.items.data[0].price.unit_amount / 100,
+      price: price
     };
-    await Subscription.create(subscriptionData);
-    console.log("Subscription created and saved:", subscriptionData);
-  } catch (error) {
-    console.error("Error saving subscription:", error);
+
+    const newSubscription = new Subscription(subscriptionData);
+    await newSubscription.save();
+    console.log("Subscription saved:", newSubscription);
+
+    const userSubscriptionData = {
+      subscription_id: subscription.id, // store the subscription ID
+      plan: subscriptionDescription,    // store the plan description
+      price: price,         // store the price
+    };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      session.metadata.userId,
+      {
+        $push: { subscriptions: userSubscriptionData }  // Push subscription details directly to the subscriptions array
+      },
+      { new: true } // Return the updated document
+    );
+
+    if (updatedUser) {
+      console.log("User subscription updated:", updatedUser);
+    } else {
+      console.log("User not found or failed to update.");
+    }
+
+
+
+  } catch (err) {
+    console.error("Failed to retrieve subscription or save to database:", err);
+  }
+};
+
+const handlePaymentSucceeded = async (invoice) => {
+  try {
+    const subscriptionId = invoice.subscription;
+    if (!subscriptionId) throw new Error("No subscription ID found");
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    await Subscription.findOneAndUpdate(
+      { subscriptionId: subscription.id },
+      {
+        stripePriceId: subscription.items.data[0].price.id,
+        stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      },
+      { new: true }
+    );
+    console.log("Subscription updated:", subscription);
+  } catch (err) {
+    console.error("Error updating subscription:", err);
+  }
+};
+
+const handleSubscriptionCreated = async (subscription) => {
+  try {
+
+    
+    const subscriptionDescription = subscription.payment_settings.payment_method_options.card.mandate_options.description;
+
+    const subscriptionPrice = subscription.payment_settings.payment_method_options.card.mandate_options.amount;
+
+    const price = subscriptionPrice / 100;
+
+
+    const subscriptionData = {
+      customerId: subscription.customer,
+      subscriptionId: subscription.id,
+      plan: subscriptionDescription,
+      startDate: new Date(subscription.current_period_start * 1000),
+      endDate: new Date(subscription.current_period_end * 1000),
+      price: price
+    };
+    // await Subscription.create(subscriptionData);
+    // console.log("Subscription created and saved:", subscriptionData);
+  } catch (err) {
+    console.error("Error saving subscription:", err);
   }
 };
 
 const handleSubscriptionUpdated = async (subscription) => {
   try {
     const updatedData = {
-      plan: subscription.items.data[0].price.id,
-      startDate: new Date(subscription.start_date * 1000),
-      endDate: new Date(subscription.current_period_end * 1000),
-      status: subscription.status,
-      price: subscription.items.data[0].price.unit_amount / 100,
+      stripePriceId: subscription.items.data[0].price.id,
+      stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
     };
     await Subscription.findOneAndUpdate(
       { subscriptionId: subscription.id },
@@ -171,28 +204,20 @@ const handleSubscriptionUpdated = async (subscription) => {
       { new: true }
     );
     console.log("Subscription updated:", updatedData);
-  } catch (error) {
-    console.error("Error updating subscription:", error);
+  } catch (err) {
+    console.error("Error updating subscription:", err);
   }
 };
 
 const handleSubscriptionDeleted = async (subscription) => {
   try {
-    await Subscription.findOneAndDelete({ subscriptionId: subscription.id });
+    await Subscription.findOneAndDelete({
+      subscriptionId: subscription.id,
+    });
     console.log("Subscription deleted:", subscription.id);
-  } catch (error) {
-    console.error("Error deleting subscription:", error);
+  } catch (err) {
+    console.error("Error deleting subscription:", err);
   }
-};
-
-const handlePaymentSucceeded = async (invoice) => {
-  console.log("Payment succeeded for invoice:", invoice.id);
-  // Optionally, update the user or subscription status in the database
-};
-
-const handlePaymentFailed = async (invoice) => {
-  console.log("Payment failed for invoice:", invoice.id);
-  // Optionally, handle failed payments (e.g., notify user, update status)
 };
 
 app.use(express.json());
