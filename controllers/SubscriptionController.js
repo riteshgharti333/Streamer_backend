@@ -1,7 +1,7 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { stripe } from "../config/stripeConfig.js";
-import { User } from "../models/userModel.js";
-import Subscription from "../models/subscriptionModel.js";
+
+// CREATE CUSTOMER
 
 export const createCustomer = catchAsyncError(async (req, res, next) => {
   try {
@@ -9,15 +9,14 @@ export const createCustomer = catchAsyncError(async (req, res, next) => {
 
     const customer = await stripe.customers.create({
       email,
-      name, // Add the user's name
+      name,
       payment_method,
       invoice_settings: {
         default_payment_method: payment_method,
       },
       metadata: {
-        // Optional: Store additional information if needed
-        userId: req.body.userId // Assuming userId is passed in the request body
-      }
+        userId: req.body.userId,
+      },
     });
 
     res.json({ customer });
@@ -26,19 +25,17 @@ export const createCustomer = catchAsyncError(async (req, res, next) => {
   }
 });
 
+// GET CUSTOMER
 
 export const getCustomer = catchAsyncError(async (req, res, next) => {
-  const { id } = req.params; // Get the customer ID from the request parameters
+  const { id } = req.params;
 
   try {
-    // Fetch the customer from Stripe using the provided ID
     const customer = await stripe.customers.retrieve(id);
 
-    res.status(200).json(customer); // Send the customer data back in the response
+    res.status(200).json(customer);
   } catch (error) {
     console.error("Error fetching customer from Stripe:", error);
-
-    // Handle errors, such as when the customer ID is invalid
     if (error.type === "StripeInvalidRequestError") {
       res.status(400).json({ error: "Invalid customer ID" });
     } else {
@@ -47,13 +44,12 @@ export const getCustomer = catchAsyncError(async (req, res, next) => {
   }
 });
 
+// CREATE SUBSCRIPTION  SESSION
 
 export const createSubscriptionSession = catchAsyncError(
   async (req, res, next) => {
     try {
       const { email, priceId, userId, name } = req.body;
-
-      // Create the checkout session with Stripe
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "subscription",
@@ -70,12 +66,11 @@ export const createSubscriptionSession = catchAsyncError(
         success_url: "http://localhost:5173/subscriptions",
         cancel_url: "http://localhost:5173/subscriptions",
         metadata: {
-          userId,  // User ID from your database
-          name,    // The plan user selected
+          userId,
+          name,
         },
       });
 
-      // Send the session URL to the frontend
       res.json({ sessionUrl: session.url });
     } catch (error) {
       res.status(400).json({ error: { message: error.message } });
@@ -83,15 +78,15 @@ export const createSubscriptionSession = catchAsyncError(
   }
 );
 
+// GET SUBSCRIPTION
 
 export const getSubscriptionDetails = catchAsyncError(
   async (req, res, next) => {
     try {
-      const { subscriptionId } = req.params; // Retrieve subscriptionId from request parameters
+      const { subscriptionId } = req.params;
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-      // Send the subscription details back to the client
       res.json({ subscription });
     } catch (error) {
       res.status(400).json({ error: { message: error.message } });
@@ -99,14 +94,14 @@ export const getSubscriptionDetails = catchAsyncError(
   }
 );
 
+// GET ALL SUBSCRIPTIONS
+
 export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
   try {
     const subscriptions = await stripe.subscriptions.list({ limit: 100 });
 
-    // Count the number of subscriptions
     const subscriptionCount = subscriptions.data.length;
 
-    // Respond with the count and the list of subscriptions
     res.status(200).json({
       count: subscriptionCount,
       subscriptions: subscriptions.data,
@@ -115,5 +110,34 @@ export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
     console.log(error);
     console.error("Error fetching subscriptions from Stripe:", error);
     res.status(500).json({ error: "Failed to fetch subscriptions" });
+  }
+});
+
+
+// DELETE ALL SUBSCRIPTIONS
+export const deleteAllSubscriptions = catchAsyncError(async (req, res, next) => {
+  try {
+    // Fetch all subscriptions with a limit of 100 initially.
+    let subscriptions = await stripe.subscriptions.list({ limit: 100 });
+    let allSubscriptions = subscriptions.data;
+
+    // Check if there are more than 100 subscriptions, and fetch them in subsequent calls.
+    while (subscriptions.has_more) {
+      subscriptions = await stripe.subscriptions.list({
+        limit: 100,
+        starting_after: subscriptions.data[subscriptions.data.length - 1].id,
+      });
+      allSubscriptions = allSubscriptions.concat(subscriptions.data);
+    }
+
+    // Iterate over each subscription and cancel them.
+    for (const subscription of allSubscriptions) {
+      await stripe.subscriptions.cancel(subscription.id);
+    }
+
+    res.status(200).json({ message: "All subscriptions have been canceled." });
+  } catch (error) {
+    console.error("Error deleting all subscriptions:", error);
+    res.status(500).json({ error: "Failed to delete all subscriptions" });
   }
 });

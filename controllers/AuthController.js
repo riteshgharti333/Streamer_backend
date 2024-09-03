@@ -1,14 +1,14 @@
-import {catchAsyncError} from "../middlewares/catchAsyncError.js";
+import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { User } from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import { sendCookie } from "../utils/features.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 
-
+// REGISTER 
 
 export const register = catchAsyncError(async (req, res, next) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, isAdmin } = req.body;
 
   let user = await User.findOne({ email });
 
@@ -16,13 +16,11 @@ export const register = catchAsyncError(async (req, res, next) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-
-
   user = await User.create({
     name,
     email,
     password: hashedPassword,
-    customerId: mollieCustomer.id, // Save Mollie customer ID
+    isAdmin,
   });
 
   res.status(201).json({
@@ -32,12 +30,12 @@ export const register = catchAsyncError(async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      isAdmin: user.isAdmin,
     },
-    // token: generateToken(user._id), // Assuming you have a function to generate a token
   });
 });
 
-
+// LOGIN
 
 export const login = async (req, res, next) => {
   try {
@@ -52,27 +50,26 @@ export const login = async (req, res, next) => {
     if (!isMatch)
       return next(new ErrorHandler("Invalid Email or Password", 400));
 
-    // sendCookie(user, res, `Welcome back, ${user.name}`, 200);
-
-    res.status(200).json({
-      success: true,
-      user,
-    });
+    sendCookie(user, res, `Welcome Back, ${user.name}`, 200);
   } catch (error) {
     next(error);
   }
 };
 
-export const myProfile = catchAsyncError(async(req,res,next) => {
-     res.status(200).json({
-          success: true,
-          user: req.user,
-        });
-})
+// PROFILE
+
+export const myProfile = catchAsyncError(async (req, res, next) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+  });
+});
 
 
-export const logout = catchAsyncError(async(req,res,next) => {
-     res
+// LOGOUT
+
+export const logout = catchAsyncError(async (req, res, next) => {
+  res
     .status(200)
     .cookie("token", "", {
       expires: new Date(Date.now()),
@@ -83,21 +80,6 @@ export const logout = catchAsyncError(async(req,res,next) => {
       success: true,
       message: "Logout Successfully",
       user: req.user,
-    }); 
-})
-
-
-///
-
-export const getCustomerIdFromUserId = catchAsyncError(async (req, res, next) => {
-  const userId = req.params.userId;
-
-  const user = await User.findById(userId);
-
-  if (!user) return next(new ErrorHandler("User Not Found", 404));
-
-  res.status(200).json({
-    success: true,
-    customerId: user.customerId,
-  });
+    });
 });
+

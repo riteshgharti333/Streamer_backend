@@ -9,7 +9,6 @@ import authRouter from "./routes/authRoute.js";
 import userRouter from "./routes/userRoute.js";
 import movieRouter from "./routes/movieRoute.js";
 import listRouter from "./routes/listRoute.js";
-import paymentRouter from "./routes/paymentRoute.js";
 import subscriptionRouter from "./routes/subscriptionRoute.js";
 import Subscription from "./models/subscriptionModel.js";
 import { User } from "./models/userModel.js";
@@ -48,7 +47,7 @@ app.post(
   bodyParser.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
-    const endpointSecret = "whsec_ca6852f0e8c237bcf3678e459b1447b5d2d602c0da92e9fdf4759036e80d6116";
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     let event;
 
@@ -61,7 +60,6 @@ app.post(
 
     switch (event.type) {
       case "checkout.session.completed":
-    
         await handleCheckoutSessionCompleted(event.data.object);
         break;
       case "invoice.payment_succeeded":
@@ -87,19 +85,18 @@ app.post(
 // Define functions to handle Stripe events
 const handleCheckoutSessionCompleted = async (session) => {
   try {
-
-   
-
     const subscriptionId = session.subscription;
     if (!subscriptionId) throw new Error("No subscription ID found");
 
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-   
-    const subscriptionDescription = subscription.payment_settings.payment_method_options.card.mandate_options.description;
+    const subscriptionDescription =
+      subscription.payment_settings.payment_method_options.card.mandate_options
+        .description;
 
-    const subscriptionPrice = subscription.payment_settings.payment_method_options.card.mandate_options.amount;
-
+    const subscriptionPrice =
+      subscription.payment_settings.payment_method_options.card.mandate_options
+        .amount;
 
     const price = subscriptionPrice / 100;
 
@@ -112,7 +109,7 @@ const handleCheckoutSessionCompleted = async (session) => {
       plan: subscriptionDescription,
       startDate: new Date(subscription.current_period_start * 1000),
       endDate: new Date(subscription.current_period_end * 1000),
-      price: price
+      price: price,
     };
 
     const newSubscription = new Subscription(subscriptionData);
@@ -121,14 +118,14 @@ const handleCheckoutSessionCompleted = async (session) => {
 
     const userSubscriptionData = {
       subscription_id: subscription.id, // store the subscription ID
-      plan: subscriptionDescription,    // store the plan description
-      price: price,         // store the price
+      plan: subscriptionDescription, // store the plan description
+      price: price, // store the price
     };
 
     const updatedUser = await User.findByIdAndUpdate(
       session.metadata.userId,
       {
-        $push: { subscriptions: userSubscriptionData }  // Push subscription details directly to the subscriptions array
+        $push: { subscriptions: userSubscriptionData }, // Push subscription details directly to the subscriptions array
       },
       { new: true } // Return the updated document
     );
@@ -138,9 +135,6 @@ const handleCheckoutSessionCompleted = async (session) => {
     } else {
       console.log("User not found or failed to update.");
     }
-
-
-
   } catch (err) {
     console.error("Failed to retrieve subscription or save to database:", err);
   }
@@ -156,7 +150,9 @@ const handlePaymentSucceeded = async (invoice) => {
       { subscriptionId: subscription.id },
       {
         stripePriceId: subscription.items.data[0].price.id,
-        stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        stripeCurrentPeriodEnd: new Date(
+          subscription.current_period_end * 1000
+        ),
       },
       { new: true }
     );
@@ -168,14 +164,15 @@ const handlePaymentSucceeded = async (invoice) => {
 
 const handleSubscriptionCreated = async (subscription) => {
   try {
+    const subscriptionDescription =
+      subscription.payment_settings.payment_method_options.card.mandate_options
+        .description;
 
-    
-    const subscriptionDescription = subscription.payment_settings.payment_method_options.card.mandate_options.description;
-
-    const subscriptionPrice = subscription.payment_settings.payment_method_options.card.mandate_options.amount;
+    const subscriptionPrice =
+      subscription.payment_settings.payment_method_options.card.mandate_options
+        .amount;
 
     const price = subscriptionPrice / 100;
-
 
     const subscriptionData = {
       customerId: subscription.customer,
@@ -183,7 +180,7 @@ const handleSubscriptionCreated = async (subscription) => {
       plan: subscriptionDescription,
       startDate: new Date(subscription.current_period_start * 1000),
       endDate: new Date(subscription.current_period_end * 1000),
-      price: price
+      price: price,
     };
     // await Subscription.create(subscriptionData);
     // console.log("Subscription created and saved:", subscriptionData);
@@ -227,7 +224,6 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/movies", movieRouter);
 app.use("/api/list", listRouter);
-app.use("/api/payments", paymentRouter);
 app.use("/api/subscriptions", subscriptionRouter);
 
 // Set up a simple root route

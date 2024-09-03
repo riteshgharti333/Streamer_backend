@@ -7,13 +7,14 @@ export const sendCookie = (user, res, message, statusCode = 200) => {
     .status(statusCode)
     .cookie("token", token, {
       httpOnly: true,
-      maxAge: 15 * 15 * 60 * 1000,
+      maxAge: 15 * 24 * 60 * 60 * 1000, 
       sameSite: process.env.NODE_ENV === "Development" ? "lax" : "none",
       secure: process.env.NODE_ENV === "Development" ? false : true,
     })
     .json({
       success: true,
       message,
-      token
+      token,
+      user
     });
 };
