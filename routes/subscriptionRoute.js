@@ -4,8 +4,9 @@ import {
   createCustomer,
   createSubscriptionSession,
   deleteAllSubscriptions,
-  fetchAllSubscriptions,
+  deleteSubscription,
   getCustomer,
+  getSubscriptionData,
   getSubscriptionDetails,
 } from "../controllers/SubscriptionController.js";
 import { isAuthenticated } from "../middlewares/auth.js";
@@ -22,10 +23,19 @@ router.post(
   createSubscriptionSession
 );
 
+// router.get("/", fetchAllSubscriptions);
+
+
+router.get("/", getSubscriptionData);
+
+
 router.get("/:subscriptionId", getSubscriptionDetails);
 
-router.get("/", fetchAllSubscriptions);
+
+
 
 router.delete("/delete-all-subscriptions", isAuthenticated, deleteAllSubscriptions);
+
+router.delete('/:subscriptionId', isAuthenticated ,  deleteSubscription);
 
 export default router;

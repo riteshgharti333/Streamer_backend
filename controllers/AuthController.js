@@ -3,6 +3,7 @@ import { User } from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import { sendCookie } from "../utils/features.js";
 import ErrorHandler from "../utils/errorHandler.js";
+import Subscription from "../models/subscriptionModel.js";
 
 
 // REGISTER 
@@ -59,11 +60,22 @@ export const login = async (req, res, next) => {
 // PROFILE
 
 export const myProfile = catchAsyncError(async (req, res, next) => {
-  res.status(200).json({
-    success: true,
-    user: req.user,
-  });
+  try {
+    const user = req.user;
+    const subscription = await Subscription.findOne({ userId: user._id });
+
+    res.status(200).json({
+      success: true,
+      userDetails: {
+        user,
+        subscription: subscription,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
+
 
 
 // LOGOUT
