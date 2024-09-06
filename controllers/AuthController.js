@@ -62,7 +62,7 @@ export const login = async (req, res, next) => {
 export const myProfile = catchAsyncError(async (req, res, next) => {
   try {
     const user = req.user;
-    const subscription = await Subscription.findOne({ userId: user._id });
+    const subscription = await Subscription.find({ userId: user._id });
 
     res.status(200).json({
       success: true,
