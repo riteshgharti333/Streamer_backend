@@ -126,6 +126,13 @@ export const queryMovie = catchAsyncError(async (req, res, next) => {
 
   const movies = await Movie.find(query);
 
+   if (movies.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: `No ${type || 'movies'} found for genre ${genre || 'any genre'}`,
+    });
+  }
+
   res.status(200).json({
     success: true,
     movies,
