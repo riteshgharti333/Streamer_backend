@@ -1,6 +1,7 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { stripe } from "../config/stripeConfig.js";
 import Subscription from "../models/subscriptionModel.js";
+import { User } from "../models/userModel.js";
 
 // CREATE CUSTOMER
 
@@ -167,29 +168,52 @@ export const deleteAllSubscriptions = catchAsyncError(
 
 export const deleteSubscription = catchAsyncError(async (req, res, next) => {
   try {
-    const { subscriptionId } = req.params;
-    const subscription = await Subscription.findOneAndDelete({
-      subscriptionId,
-    });
+    const { userId } = req.params; // Assuming the userId is passed in the params
 
-    if (!subscription) {
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (!user || !user.subscriptions || user.subscriptions.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Subscription not found",
+        message: "Subscription or user not found",
       });
     }
 
-    await stripe.subscriptions.cancel(subscription.subscriptionId);
+    // Assuming we're canceling the first subscription in the array (can be modified if dynamic)
+    const userSubscription = user.subscriptions[0]; // Or find the relevant subscription if there are multiple
+    const subscriptionId = userSubscription.subscription_id;
 
-    // Delete the subscription from MongoDB
-    await Subscription.findOneAndDelete({ subscriptionId });
+    // Cancel the subscription in Stripe
+    await stripe.subscriptions.cancel(subscriptionId);
 
+    // Remove the subscription from the Subscription collection in MongoDB
+    const deletedSubscription = await Subscription.findOneAndDelete({ subscriptionId });
+
+    if (!deletedSubscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Subscription not found in the database",
+      });
+    }
+
+    // Remove the subscription from the user's subscription array
+    user.subscriptions = user.subscriptions.filter(
+      (subscription) => subscription.subscription_id !== subscriptionId
+    );
+
+    // Save the updated user
+    await user.save();
+
+    // Respond with success message
     res.status(200).json({
       success: true,
-      message: "Subscription deleted successfully",
+      message: "Subscription canceled and removed from both the user and the subscription collection",
     });
   } catch (error) {
     console.log(error);
     next(error);
   }
 });
+
+

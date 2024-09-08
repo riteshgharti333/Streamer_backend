@@ -115,6 +115,24 @@ const handleCheckoutSessionCompleted = async (session) => {
     const newSubscription = new Subscription(subscriptionData);
     await newSubscription.save();
     console.log("Subscription saved:", newSubscription);
+
+    const userSubscriptionData = {
+      subscription_id: subscription.id,
+      priceId: subscription.items.data[0].price.id,
+    };
+
+    const updatedUser = await User.findByIdAndUpdate(
+      session.metadata.userId,
+      {
+        $push: { subscriptions: userSubscriptionData },
+      },
+      { new: true }
+    );
+    if (updatedUser) {
+      console.log("User subscription updated:", updatedUser);
+    } else {
+      console.log("User not found or failed to update.");
+    }
   } catch (err) {
     console.error("Failed to retrieve subscription or save to database:", err);
   }
