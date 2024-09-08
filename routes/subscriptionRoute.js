@@ -36,6 +36,6 @@ router.get("/:subscriptionId", getSubscriptionDetails);
 
 router.delete("/delete-all-subscriptions", isAuthenticated, deleteAllSubscriptions);
 
-router.delete('/:subscriptionId', isAuthenticated ,  deleteSubscription);
+router.delete('/:subscriptionId/:userId', isAuthenticated ,  deleteSubscription);
 
 export default router;

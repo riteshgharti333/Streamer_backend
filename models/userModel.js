@@ -23,6 +23,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    subscriptions: [ // Array to store multiple subscriptions with details
+      {
+        subscription_id: String,
+        priceId: String,
+      }
+    ],
   },
   { timestamps: true }
 );
