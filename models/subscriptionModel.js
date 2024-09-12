@@ -18,6 +18,10 @@ const subscriptionSchema = new mongoose.Schema({
     type: String, 
     required: true // Stripe customer ID or equivalent from your payment provider
   },
+  priceId: { 
+    type: String, 
+    required: true // Stripe customer ID or equivalent from your payment provider
+  },
   subscriptionId: { 
     type: String, 
     required: true // Stripe subscription ID 

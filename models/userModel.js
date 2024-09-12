@@ -11,19 +11,23 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    profilePic: {
-      type: String,
-      default: "",
-    },
     password: {
       type: String,
       required: true,
+    },
+     currentPassword: {
+      type: String,
+      select: false, 
+    },
+    newPassword: {
+      type: String,
+      select: false, 
     },
     isAdmin: {
       type: Boolean,
       default: false,
     },
-    subscriptions: [ // Array to store multiple subscriptions with details
+    subscriptions: [
       {
         subscription_id: String,
         priceId: String,

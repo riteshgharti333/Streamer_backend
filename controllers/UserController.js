@@ -22,6 +22,7 @@ export const getSingleUser = catchAsyncError(async (req, res, next) => {
   });
 });
 
+
 export const deleteUser = catchAsyncError(async (req, res, next) => {
   const deleteUser = await User.findByIdAndDelete(req.params.id);
 
@@ -32,3 +33,4 @@ export const deleteUser = catchAsyncError(async (req, res, next) => {
     message: "User Deleted",
   });
 });
+

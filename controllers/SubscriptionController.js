@@ -173,6 +173,8 @@ export const deleteSubscription = catchAsyncError(async (req, res, next) => {
     // Find the user by ID
     const user = await User.findById(userId);
 
+  console.log(user);
+
     if (!user || !user.subscriptions || user.subscriptions.length === 0) {
       return res.status(404).json({
         success: false,
@@ -180,14 +182,11 @@ export const deleteSubscription = catchAsyncError(async (req, res, next) => {
       });
     }
 
-    // Assuming we're canceling the first subscription in the array (can be modified if dynamic)
-    const userSubscription = user.subscriptions[0]; // Or find the relevant subscription if there are multiple
+    const userSubscription = user.subscriptions[0]; 
     const subscriptionId = userSubscription.subscription_id;
 
-    // Cancel the subscription in Stripe
     await stripe.subscriptions.cancel(subscriptionId);
 
-    // Remove the subscription from the Subscription collection in MongoDB
     const deletedSubscription = await Subscription.findOneAndDelete({ subscriptionId });
 
     if (!deletedSubscription) {
