@@ -112,7 +112,7 @@ export const queryMovie = catchAsyncError(async (req, res, next) => {
   }
 
   if (type) {
-    if (type === "webseries") {
+    if (type === "series") {
       query.isSeries = true;
     } else if (type === "movies") {
       query.isSeries = false;

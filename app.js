@@ -107,6 +107,7 @@ const handleCheckoutSessionCompleted = async (session) => {
       customerId: subscription.customer,
       subscriptionId: subscription.id,
       plan: subscriptionDescription,
+      priceId: subscription.items.data[0].price.id,
       startDate: new Date(subscription.current_period_start * 1000),
       endDate: new Date(subscription.current_period_end * 1000),
       price: price,
