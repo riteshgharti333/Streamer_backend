@@ -210,7 +210,6 @@ const handleSubscriptionDeleted = async (subscription) => {
     await Subscription.findOneAndDelete({
       subscriptionId: subscription.id,
     });
-    console.log("Subscription deleted:", subscription.id);
   } catch (err) {
     console.error("Error deleting subscription:", err);
   }

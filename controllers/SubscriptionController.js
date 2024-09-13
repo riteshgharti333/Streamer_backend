@@ -168,12 +168,8 @@ export const deleteAllSubscriptions = catchAsyncError(
 
 export const deleteSubscription = catchAsyncError(async (req, res, next) => {
   try {
-    const { userId } = req.params; // Assuming the userId is passed in the params
-
-    // Find the user by ID
+    const { userId } = req.params; 
     const user = await User.findById(userId);
-
-  console.log(user);
 
     if (!user || !user.subscriptions || user.subscriptions.length === 0) {
       return res.status(404).json({
