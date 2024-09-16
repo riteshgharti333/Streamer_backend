@@ -25,7 +25,11 @@ config({
 app.use(cookieParser());
 
 // Configure CORS settings
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3001"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3001",
+  "https://streamer-frontend-z72w.vercel.app", // Add your Vercel frontend URL here
+];
 
 app.use(
   cors({
@@ -40,6 +44,7 @@ app.use(
     credentials: true,
   })
 );
+
 
 // Set up Stripe webhook endpoint
 app.post(
