@@ -65,8 +65,8 @@ export const createSubscriptionSession = catchAsyncError(
         shipping_address_collection: {
           allowed_countries: ["IN"],
         },
-        success_url: "http://localhost:5173/subscriptions",
-        cancel_url: "http://localhost:5173/subscriptions",
+        success_url: process.env.SUCCESS_URL,
+        cancel_url: process.env.CANCEL_URL,
         metadata: {
           userId,
           name,
