@@ -12,6 +12,7 @@ import listRouter from "./routes/listRoute.js";
 import subscriptionRouter from "./routes/subscriptionRoute.js";
 import Subscription from "./models/subscriptionModel.js";
 import { User } from "./models/userModel.js";
+import demo from "./demo.js";
 
 // Initialize Express app
 export const app = express();
@@ -28,7 +29,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001",
-  "https://streamer-frontend-z72w.vercel.app", // Add your Vercel frontend URL here
+  "https://streamer-frontend-z72w.vercel.app", 
 ];
 
 app.use(
@@ -224,10 +225,12 @@ app.use(express.json());
 
 // Configure application routes
 app.use("/api/auth", authRouter);
-app.use("/api/user", userRouter);
+app.use("/api/users", userRouter);
 app.use("/api/movies", movieRouter);
 app.use("/api/list", listRouter);
 app.use("/api/subscriptions", subscriptionRouter);
+app.use("/api/subscriptions", demo);
+
 
 // Set up a simple root route
 app.get("/", (req, res) => {
