@@ -91,22 +91,30 @@ export const getSubscriptionData = catchAsyncError(async (req, res, next) => {
       subscriptionData,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).json({ error: { message: error.message } });
   }
 });
 
 // GET STRIPE SUBSCRIPTION
-
 export const getSubscriptionDetails = catchAsyncError(
   async (req, res, next) => {
     try {
-      const { subscriptionId } = req.params;
+      const subscription = await Subscription.findById(req.params.id);
 
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      if (!subscription) {
+        return res
+          .status(404)
+          .json({ error: { message: "Subscription not found" } });
+      }
 
-      res.json({ subscription });
+      res.status(200).json({
+        success: true,
+        subscription,
+      });
     } catch (error) {
+      // Handle errors
+      console.log(error);
       res.status(400).json({ error: { message: error.message } });
     }
   }
@@ -168,22 +176,24 @@ export const deleteAllSubscriptions = catchAsyncError(
 
 export const deleteSubscription = catchAsyncError(async (req, res, next) => {
   try {
-    const { userId } = req.params; 
-    const user = await User.findById(userId);
+    const subscription = await Subscription.findOne({
+      subscriptionId: req.params.id,
+    });
 
-    if (!user || !user.subscriptions || user.subscriptions.length === 0) {
+    const subscriptionId = subscription.subscriptionId;
+
+    // await stripe.subscriptions.cancel(subscriptionId);
+
+    if (!subscriptionId) {
       return res.status(404).json({
         success: false,
-        message: "Subscription or user not found",
+        message: "Subscription not found!",
       });
     }
 
-    const userSubscription = user.subscriptions[0]; 
-    const subscriptionId = userSubscription.subscription_id;
-
-    await stripe.subscriptions.cancel(subscriptionId);
-
-    const deletedSubscription = await Subscription.findOneAndDelete({ subscriptionId });
+    const deletedSubscription = await Subscription.findOneAndDelete({
+      subscriptionId,
+    });
 
     if (!deletedSubscription) {
       return res.status(404).json({
@@ -192,23 +202,12 @@ export const deleteSubscription = catchAsyncError(async (req, res, next) => {
       });
     }
 
-    // Remove the subscription from the user's subscription array
-    user.subscriptions = user.subscriptions.filter(
-      (subscription) => subscription.subscription_id !== subscriptionId
-    );
-
-    // Save the updated user
-    await user.save();
-
-    // Respond with success message
     res.status(200).json({
       success: true,
-      message: "Subscription canceled and removed from both the user and the subscription collection",
+      message: "Subscription Deleted!",
     });
   } catch (error) {
     console.log(error);
     next(error);
   }
 });
-
-

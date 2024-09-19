@@ -29,13 +29,13 @@ router.post(
 router.get("/", getSubscriptionData);
 
 
-router.get("/:subscriptionId", getSubscriptionDetails);
+router.get("/:id", getSubscriptionDetails);
 
 
 
 
 router.delete("/delete-all-subscriptions", isAuthenticated, deleteAllSubscriptions);
 
-router.delete('/:subscriptionId/:userId', isAuthenticated ,  deleteSubscription);
+router.delete('/:id', isAuthenticated ,  deleteSubscription);
 
 export default router;
