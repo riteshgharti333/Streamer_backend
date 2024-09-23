@@ -86,6 +86,8 @@ export const getSubscriptionData = catchAsyncError(async (req, res, next) => {
   try {
     const subscriptionData = await Subscription.find();
 
+    const moviesData = await 
+
     res.status(200).json({
       success: true,
       subscriptionData,
