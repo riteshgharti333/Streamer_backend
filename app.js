@@ -29,7 +29,8 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001",
-  "https://streamer-frontend-z72w.vercel.app", 
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_URL,
 ];
 
 app.use(
@@ -45,7 +46,6 @@ app.use(
     credentials: true,
   })
 );
-
 
 // Set up Stripe webhook endpoint
 app.post(
@@ -230,7 +230,6 @@ app.use("/api/movies", movieRouter);
 app.use("/api/list", listRouter);
 app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/subscriptions", demo);
-
 
 // Set up a simple root route
 app.get("/", (req, res) => {
