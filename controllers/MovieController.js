@@ -4,21 +4,23 @@ import ErrorHandler from "../utils/errorHandler.js";
 import { removeDeletedMoviesFromAllLists } from "./ListController.js";
 
 // CREATE MOVIE
-
 export const createMovie = catchAsyncError(async (req, res, next) => {
-  const newMovie = new Movie(req.body);
+  try {
+    const newMovie = new Movie(req.body);
 
-  const savedMovie = await newMovie.save();
+    const savedMovie = await newMovie.save();
 
-  res.status(201).json({
-    success: true,
-    savedMovie,
-  });
+    return res.status(201).json({
+      success: true,
+      savedMovie,
+    });
+  } catch (error) {
+    return next(new ErrorHandler(error.message, 500));
+  }
 });
 
 // GET ALL MOVIES
-
-export const getAllMovies = catchAsyncError(async (req, res, next) => {
+export const getAllMovies = catchAsyncError(async (req, res) => {
   const movies = await Movie.find().sort({ createdAt: -1 });
 
   res.status(200).json({
@@ -28,8 +30,7 @@ export const getAllMovies = catchAsyncError(async (req, res, next) => {
 });
 
 // GET RANDOM MOVIES
-
-export const random = catchAsyncError(async (req, res, next) => {
+export const random = catchAsyncError(async (req, res) => {
   const type = req.query.type;
   let movie;
 
@@ -52,7 +53,6 @@ export const random = catchAsyncError(async (req, res, next) => {
 });
 
 // GET SINGLE MOVIE
-
 export const getMovie = catchAsyncError(async (req, res, next) => {
   const getMovie = await Movie.findById(req.params.id);
 
@@ -65,7 +65,6 @@ export const getMovie = catchAsyncError(async (req, res, next) => {
 });
 
 // DELETE MOVIE
-
 export const deleteMovie = catchAsyncError(async (req, res, next) => {
   const movieId = req.params.id;
 
@@ -82,14 +81,13 @@ export const deleteMovie = catchAsyncError(async (req, res, next) => {
 });
 
 // UPDATE MOVIE
-
 export const updateMovie = catchAsyncError(async (req, res, next) => {
   const updateMovie = await Movie.findByIdAndUpdate(
     req.params.id,
     {
       $set: req.body,
     },
-    { new: true }
+    { new: true },
   );
 
   if (!updateMovie) return next(new Error("Movie not found", 404));
@@ -101,7 +99,7 @@ export const updateMovie = catchAsyncError(async (req, res, next) => {
 });
 
 // GET GENRE MOVIES
-export const queryMovie = catchAsyncError(async (req, res, next) => {
+export const queryMovie = catchAsyncError(async (req, res) => {
   const { genre, type } = req.query;
 
   // Build the query object
@@ -126,10 +124,10 @@ export const queryMovie = catchAsyncError(async (req, res, next) => {
 
   const movies = await Movie.find(query);
 
-   if (movies.length === 0) {
+  if (movies.length === 0) {
     return res.status(404).json({
       success: false,
-      message: `No ${type || 'movies'} found for genre ${genre || 'any genre'}`,
+      message: `No ${type || "movies"} found for genre ${genre || "any genre"}`,
     });
   }
 

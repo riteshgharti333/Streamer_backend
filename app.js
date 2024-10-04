@@ -11,7 +11,6 @@ import movieRouter from "./routes/movieRoute.js";
 import listRouter from "./routes/listRoute.js";
 import subscriptionRouter from "./routes/subscriptionRoute.js";
 import Subscription from "./models/subscriptionModel.js";
-import { User } from "./models/userModel.js";
 import demo from "./demo.js";
 
 // Initialize Express app
@@ -44,7 +43,7 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-  })
+  }),
 );
 
 // Set up Stripe webhook endpoint
@@ -71,9 +70,9 @@ app.post(
       case "invoice.payment_succeeded":
         await handlePaymentSucceeded(event.data.object);
         break;
-      case "customer.subscription.created":
-        await handleSubscriptionCreated(event.data.object);
-        break;
+      // case "customer.subscription.created":
+      //   await handleSubscriptionCreated(event.data.object);
+      //   break;
       case "customer.subscription.updated":
         await handleSubscriptionUpdated(event.data.object);
         break;
@@ -85,7 +84,7 @@ app.post(
     }
 
     res.json({ received: true });
-  }
+  },
 );
 
 // Define functions to handle Stripe events
@@ -122,24 +121,6 @@ const handleCheckoutSessionCompleted = async (session) => {
     const newSubscription = new Subscription(subscriptionData);
     await newSubscription.save();
     console.log("Subscription saved:", newSubscription);
-
-    const userSubscriptionData = {
-      subscription_id: subscription.id,
-      priceId: subscription.items.data[0].price.id,
-    };
-
-    const updatedUser = await User.findByIdAndUpdate(
-      session.metadata.userId,
-      {
-        $push: { subscriptions: userSubscriptionData },
-      },
-      { new: true }
-    );
-    if (updatedUser) {
-      console.log("User subscription updated:", updatedUser);
-    } else {
-      console.log("User not found or failed to update.");
-    }
   } catch (err) {
     console.error("Failed to retrieve subscription or save to database:", err);
   }
@@ -156,10 +137,10 @@ const handlePaymentSucceeded = async (invoice) => {
       {
         stripePriceId: subscription.items.data[0].price.id,
         stripeCurrentPeriodEnd: new Date(
-          subscription.current_period_end * 1000
+          subscription.current_period_end * 1000,
         ),
       },
-      { new: true }
+      { new: true },
     );
     console.log("Subscription updated:", subscription);
   } catch (err) {
@@ -167,32 +148,13 @@ const handlePaymentSucceeded = async (invoice) => {
   }
 };
 
-const handleSubscriptionCreated = async (subscription) => {
-  try {
-    const subscriptionDescription =
-      subscription.payment_settings.payment_method_options.card.mandate_options
-        .description;
+// const handleSubscriptionCreated = async () => {
+//   try {
 
-    const subscriptionPrice =
-      subscription.payment_settings.payment_method_options.card.mandate_options
-        .amount;
-
-    const price = subscriptionPrice / 100;
-
-    const subscriptionData = {
-      customerId: subscription.customer,
-      subscriptionId: subscription.id,
-      plan: subscriptionDescription,
-      startDate: new Date(subscription.current_period_start * 1000),
-      endDate: new Date(subscription.current_period_end * 1000),
-      price: price,
-    };
-    // await Subscription.create(subscriptionData);
-    // console.log("Subscription created and saved:", subscriptionData);
-  } catch (err) {
-    console.error("Error saving subscription:", err);
-  }
-};
+//   } catch (err) {
+//     console.error("Error saving subscription:", err);
+//   }
+// };
 
 const handleSubscriptionUpdated = async (subscription) => {
   try {
@@ -203,7 +165,7 @@ const handleSubscriptionUpdated = async (subscription) => {
     await Subscription.findOneAndUpdate(
       { subscriptionId: subscription.id },
       updatedData,
-      { new: true }
+      { new: true },
     );
     console.log("Subscription updated:", updatedData);
   } catch (err) {

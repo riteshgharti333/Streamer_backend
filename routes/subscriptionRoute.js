@@ -10,6 +10,7 @@ import {
   getSubscriptionDetails,
 } from "../controllers/SubscriptionController.js";
 import { isAuthenticated } from "../middlewares/auth.js";
+import { isAdmin } from "../middlewares/adminMiddleware.js";
 
 const router = express.Router();
 
@@ -20,22 +21,22 @@ router.post("/create-customer", isAuthenticated, createCustomer);
 router.post(
   "/create-subscription-session",
   isAuthenticated,
-  createSubscriptionSession
+  createSubscriptionSession,
 );
 
 // router.get("/", fetchAllSubscriptions);
 
-
 router.get("/", getSubscriptionData);
-
 
 router.get("/:id", getSubscriptionDetails);
 
+router.delete(
+  "/delete-all-subscriptions",
+  isAuthenticated,
+  isAdmin,
+  deleteAllSubscriptions,
+);
 
-
-
-router.delete("/delete-all-subscriptions", isAuthenticated, deleteAllSubscriptions);
-
-router.delete('/:id', isAuthenticated ,  deleteSubscription);
+router.delete("/:id", isAuthenticated, deleteSubscription);
 
 export default router;

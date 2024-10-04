@@ -2,7 +2,7 @@ import { config } from "dotenv";
 import Stripe from "stripe";
 
 config({
-    path: "./data/config.env",
-  });
+  path: "./data/config.env",
+});
 
-export const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
+export const stripe = Stripe(process.env.STRIPE_SECRET_KEY);

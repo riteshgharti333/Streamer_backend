@@ -1,11 +1,11 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { stripe } from "../config/stripeConfig.js";
 import Subscription from "../models/subscriptionModel.js";
-import { User } from "../models/userModel.js";
+import ErrorHandler from "../utils/errorHandler.js";
 
 // CREATE CUSTOMER
 
-export const createCustomer = catchAsyncError(async (req, res, next) => {
+export const createCustomer = catchAsyncError(async (req, res) => {
   try {
     const { email, payment_method, name } = req.body;
 
@@ -28,7 +28,6 @@ export const createCustomer = catchAsyncError(async (req, res, next) => {
 });
 
 // GET CUSTOMER
-
 export const getCustomer = catchAsyncError(async (req, res, next) => {
   const { id } = req.params;
 
@@ -38,16 +37,16 @@ export const getCustomer = catchAsyncError(async (req, res, next) => {
     res.status(200).json(customer);
   } catch (error) {
     console.error("Error fetching customer from Stripe:", error);
+
     if (error.type === "StripeInvalidRequestError") {
-      res.status(400).json({ error: "Invalid customer ID" });
-    } else {
-      res.status(500).json({ error: "Failed to fetch customer" });
+      return next(new ErrorHandler("Invalid customer ID", 400));
     }
+
+    return next(new ErrorHandler("Failed to fetch customer", 500));
   }
 });
 
 // CREATE SUBSCRIPTION  SESSION
-
 export const createSubscriptionSession = catchAsyncError(
   async (req, res, next) => {
     try {
@@ -75,26 +74,21 @@ export const createSubscriptionSession = catchAsyncError(
 
       res.json({ sessionUrl: session.url });
     } catch (error) {
-      res.status(400).json({ error: { message: error.message } });
+      next(new ErrorHandler(error.message, 400)); // Pass error to next middleware
     }
-  }
+  },
 );
 
 // GET SUBSCRIPTION DATA
-
 export const getSubscriptionData = catchAsyncError(async (req, res, next) => {
   try {
     const subscriptionData = await Subscription.find();
-
-    const moviesData = await 
-
     res.status(200).json({
       success: true,
       subscriptionData,
     });
   } catch (error) {
-    console.log(error);
-    res.status(400).json({ error: { message: error.message } });
+    next(new ErrorHandler(error.message, 400));
   }
 });
 
@@ -105,9 +99,7 @@ export const getSubscriptionDetails = catchAsyncError(
       const subscription = await Subscription.findById(req.params.id);
 
       if (!subscription) {
-        return res
-          .status(404)
-          .json({ error: { message: "Subscription not found" } });
+        return next(new ErrorHandler("Subscription not found", 404));
       }
 
       res.status(200).json({
@@ -115,11 +107,9 @@ export const getSubscriptionDetails = catchAsyncError(
         subscription,
       });
     } catch (error) {
-      // Handle errors
-      console.log(error);
-      res.status(400).json({ error: { message: error.message } });
+      next(new ErrorHandler(error.message, 400));
     }
-  }
+  },
 );
 
 // GET ALL SUBSCRIPTIONS
@@ -127,7 +117,6 @@ export const getSubscriptionDetails = catchAsyncError(
 export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
   try {
     const subscriptions = await stripe.subscriptions.list({ limit: 100 });
-
     const subscriptionCount = subscriptions.data.length;
 
     res.status(200).json({
@@ -136,8 +125,7 @@ export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
-    console.error("Error fetching subscriptions from Stripe:", error);
-    res.status(500).json({ error: "Failed to fetch subscriptions" });
+    next(new ErrorHandler("Failed to fetch subscriptions", 500));
   }
 });
 
@@ -146,11 +134,9 @@ export const fetchAllSubscriptions = catchAsyncError(async (req, res, next) => {
 export const deleteAllSubscriptions = catchAsyncError(
   async (req, res, next) => {
     try {
-      // Fetch all subscriptions with a limit of 100 initially.
       let subscriptions = await stripe.subscriptions.list({ limit: 100 });
       let allSubscriptions = subscriptions.data;
 
-      // Check if there are more than 100 subscriptions, and fetch them in subsequent calls.
       while (subscriptions.has_more) {
         subscriptions = await stripe.subscriptions.list({
           limit: 100,
@@ -159,7 +145,6 @@ export const deleteAllSubscriptions = catchAsyncError(
         allSubscriptions = allSubscriptions.concat(subscriptions.data);
       }
 
-      // Iterate over each subscription and cancel them.
       for (const subscription of allSubscriptions) {
         await stripe.subscriptions.cancel(subscription.id);
       }
@@ -168,40 +153,33 @@ export const deleteAllSubscriptions = catchAsyncError(
         .status(200)
         .json({ message: "All subscriptions have been canceled." });
     } catch (error) {
-      console.error("Error deleting all subscriptions:", error);
-      res.status(500).json({ error: "Failed to delete all subscriptions" });
+      console.log(error);
+      next(new ErrorHandler("Failed to delete all subscriptions", 500));
     }
-  }
+  },
 );
 
 // DELETE SUBSCRIPTION
-
 export const deleteSubscription = catchAsyncError(async (req, res, next) => {
   try {
     const subscription = await Subscription.findOne({
       subscriptionId: req.params.id,
     });
 
-    const subscriptionId = subscription.subscriptionId;
-
-    // await stripe.subscriptions.cancel(subscriptionId);
-
-    if (!subscriptionId) {
-      return res.status(404).json({
-        success: false,
-        message: "Subscription not found!",
-      });
+    if (!subscription) {
+      return next(new ErrorHandler("Subscription not found!", 404));
     }
 
+    await stripe.subscriptions.cancel(subscription.subscriptionId);
+
     const deletedSubscription = await Subscription.findOneAndDelete({
-      subscriptionId,
+      subscriptionId: subscription.subscriptionId,
     });
 
     if (!deletedSubscription) {
-      return res.status(404).json({
-        success: false,
-        message: "Subscription not found in the database",
-      });
+      return next(
+        new ErrorHandler("Subscription not found in the database", 404),
+      );
     }
 
     res.status(200).json({
@@ -209,7 +187,6 @@ export const deleteSubscription = catchAsyncError(async (req, res, next) => {
       message: "Subscription Deleted!",
     });
   } catch (error) {
-    console.log(error);
-    next(error);
+    next(new ErrorHandler(error.message, 400));
   }
 });

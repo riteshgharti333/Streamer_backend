@@ -1,10 +1,9 @@
 import { catchAsyncError } from "../middlewares/catchAsyncError.js";
 import { List } from "../models/listModel.js";
-import { Movie } from "../models/movieModel.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 // Create a new list
-export const createList = catchAsyncError(async (req, res, next) => {
+export const createList = catchAsyncError(async (req, res) => {
   const newList = new List(req.body);
 
   const savedList = await newList.save();
@@ -68,11 +67,10 @@ export const getSingleList = catchAsyncError(async (req, res, next) => {
 
 // Update a list, ensuring content array only includes valid movie IDs
 export const updateList = catchAsyncError(async (req, res, next) => {
-
   const updatedList = await List.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
-    { new: true }
+    { new: true },
   );
 
   if (!updatedList) return next(new Error("List not found", 404));
@@ -83,10 +81,14 @@ export const updateList = catchAsyncError(async (req, res, next) => {
   });
 });
 
-export const removeDeletedMoviesFromAllLists = catchAsyncError(async (deletedMovieIds) => {
-  const lists = await List.find();
-  for (const list of lists) {
-    list.content = list.content.filter(movieId => !deletedMovieIds.includes(movieId.toString()));
-    await list.save();
-  }
-});
+export const removeDeletedMoviesFromAllLists = catchAsyncError(
+  async (deletedMovieIds) => {
+    const lists = await List.find();
+    for (const list of lists) {
+      list.content = list.content.filter(
+        (movieId) => !deletedMovieIds.includes(movieId.toString()),
+      );
+      await list.save();
+    }
+  },
+);

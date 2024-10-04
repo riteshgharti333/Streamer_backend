@@ -3,7 +3,7 @@ import Subscription from "../models/subscriptionModel.js";
 import { User } from "../models/userModel.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
-export const getAllUser = catchAsyncError(async (req, res, next) => {
+export const getAllUser = catchAsyncError(async (req, res) => {
   const users = await User.find();
 
   res.status(200).json({
@@ -20,7 +20,7 @@ export const updateUser = catchAsyncError(async (req, res, next) => {
     },
     {
       new: true,
-    }
+    },
   );
 
   if (!user) return next(new Error("User not found!", 404));
