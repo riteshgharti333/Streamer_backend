@@ -15,26 +15,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-     currentPassword: {
+    currentPassword: {
       type: String,
-      select: false, 
+      select: false,
     },
     newPassword: {
       type: String,
-      select: false, 
+      select: false,
     },
     isAdmin: {
       type: Boolean,
       default: false,
     },
-    subscriptions: [
-      {
-        subscription_id: String,
-        priceId: String,
-      }
-    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const User = mongoose.model("User", userSchema);

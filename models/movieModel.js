@@ -47,11 +47,9 @@ const MovieSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    video: { type: String,
-      required: true,
-    },
+    video: { type: String, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export const Movie = mongoose.model("Movie" , MovieSchema);
+export const Movie = mongoose.model("Movie", MovieSchema);

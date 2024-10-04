@@ -55,7 +55,7 @@ const subscriptionSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 subscriptionSchema.index({ userId: 1 });
