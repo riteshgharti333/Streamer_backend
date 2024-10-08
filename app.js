@@ -12,6 +12,7 @@ import listRouter from "./routes/listRoute.js";
 import subscriptionRouter from "./routes/subscriptionRoute.js";
 import Subscription from "./models/subscriptionModel.js";
 import demo from "./demo.js";
+import ErrorHandler from "./utils/errorHandler.js";
 
 // Initialize Express app
 export const app = express();
@@ -38,7 +39,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(new ErrorHandler("Not allowed by CORS" , 403));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE"],
