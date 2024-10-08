@@ -45,12 +45,15 @@ export const login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
 
-    if (!user) return next(new ErrorHandler("Invalid Email or Password", 400));
+    if (!user) {
+      return res.status(400).json({ message: "Invalid Email or Password" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch)
-      return next(new ErrorHandler("Invalid Email or Password", 400));
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid Email or Password" });
+    }
 
     sendCookie(user, res, `Login Successfully`, 200);
   } catch (error) {
@@ -143,8 +146,8 @@ export const updatePassword = catchAsyncError(async (req, res, next) => {
       return next(
         new ErrorHandler(
           "New password cannot be the same as the current password",
-          400,
-        ),
+          400
+        )
       );
 
     // Hash the new password
@@ -175,7 +178,7 @@ export const forgotPassword = catchAsyncError(async (req, res, next) => {
 
     if (!user) return next(new ErrorHandler("User not found", 400));
 
-    const secret = process.env.JWT_SECRET + user.password;
+    const secret = process.env.JWT_SECRET;
 
     const token = jwt.sign({ email: user.email, id: user._id }, secret, {
       expiresIn: "30m",
@@ -255,7 +258,8 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
     }
 
     const modifiedToken = token.replace(/_/g, ".");
-    const secret = process.env.JWT_SECRET + user.password;
+
+    const secret = process.env.JWT_SECRET;
 
     try {
       jwt.verify(modifiedToken, secret);
