@@ -46,13 +46,13 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid Email or Password" });
+      return res.status(400).json({ message: 'Invalid Email or Password' });
     }
-
+    
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid Email or Password" });
+      return res.status(400).json({ message: 'Invalid Email or Password' });
     }
 
     sendCookie(user, res, `Login Successfully`, 200);
@@ -146,8 +146,8 @@ export const updatePassword = catchAsyncError(async (req, res, next) => {
       return next(
         new ErrorHandler(
           "New password cannot be the same as the current password",
-          400
-        )
+          400,
+        ),
       );
 
     // Hash the new password
@@ -187,6 +187,7 @@ export const forgotPassword = catchAsyncError(async (req, res, next) => {
     const modifiedToken = token.replace(/\./g, "_");
 
     const link = `${process.env.FRONTEND_URL}/reset-password/${user._id}/${modifiedToken}`;
+
 
     var transporter = nodemailer.createTransport({
       service: "gmail",
@@ -257,12 +258,16 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+   
+
     const modifiedToken = token.replace(/_/g, ".");
+
 
     const secret = process.env.JWT_SECRET;
 
+    // console.log(token)
     try {
-      jwt.verify(modifiedToken, secret);
+      jwt.verify(modifiedToken,secret);
     } catch (err) {
       console.log(err);
       return next(new ErrorHandler("Invalid or expired token", 401));
