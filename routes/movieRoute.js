@@ -7,6 +7,7 @@ import {
   getMovie,
   queryMovie,
   random,
+  searchMoviesAndSeries,
   updateMovie,
 } from "../controllers/MovieController.js";
 import { isAuthenticated } from "../middlewares/auth.js";
@@ -17,7 +18,12 @@ const router = express.Router();
 router.get("/", getAllMovies);
 router.get("/random", random);
 router.get("/query", queryMovie);
+
+router.get("/search", searchMoviesAndSeries);
+
+
 router.get("/:id", getMovie);
+
 
 router.post("/newmovie", isAuthenticated, isAdmin, createMovie); // Only admins can create movies
 router.put("/:id", isAuthenticated, isAdmin, updateMovie); // Only admins can update movies

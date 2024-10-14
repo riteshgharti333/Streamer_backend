@@ -136,3 +136,65 @@ export const queryMovie = catchAsyncError(async (req, res) => {
     movies,
   });
 });
+
+export const searchMoviesAndSeries = catchAsyncError(async (req, res, next) => {
+  const { query } = req.query;
+
+  try {
+    if (!query) {
+      return next(new Error("Search query is required", 400));
+    }
+
+    let isSeriesSearch = false;
+    let isMovieSearch = false;
+
+    if (query.toLowerCase().includes("series")) {
+      isSeriesSearch = true;
+    } 
+    if (query.toLowerCase().includes("movie")) {
+      isMovieSearch = true;
+    }
+
+    const searchTerm = query.replace(/series|movie/gi, "").trim();
+
+    const searchConditions = [
+      { title: { $regex: searchTerm, $options: "i" } },
+      { genre: { $regex: searchTerm, $options: "i" } },
+    ];
+
+    let searchQuery = { $or: searchConditions };
+    if (isSeriesSearch) {
+      searchQuery.isSeries = true;
+    }
+    if (isMovieSearch) {
+      searchQuery.isSeries = false;
+    }
+
+    const results = await Movie.find(
+      searchQuery,
+      "_id title genre isSeries"
+    );
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No movies or series found for the query",
+      });
+    }
+
+    const formattedResults = results.map((result) => ({
+      id: result._id,
+      title: result.title,
+      genre: result.genre,
+      type: result.isSeries ? "Series" : "Movie",
+    }));
+
+    res.status(200).json({
+      success: true,
+      results: formattedResults,
+    });
+  } catch (error) {
+    console.error(error);
+    return next(new Error("An error occurred while searching for movies and series", 500));
+  }
+});
