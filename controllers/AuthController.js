@@ -10,21 +10,25 @@ import nodemailer from "nodemailer";
 // REGISTER
 
 export const register = catchAsyncError(async (req, res, next) => {
-  const { name, email, password, isAdmin } = req.body;
+  const { name, email, password } = req.body;
 
+  // Check if the user already exists
   let user = await User.findOne({ email });
 
   if (user) return next(new ErrorHandler("User Already Exist", 400));
 
+  // Hash the password
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Create a new user with the default role
   user = await User.create({
     name,
     email,
     password: hashedPassword,
-    isAdmin,
+    role: 'user', // Default role is 'user'
   });
 
+  // Respond with success message and user info
   res.status(201).json({
     success: true,
     message: "Registered Successfully",
@@ -32,10 +36,11 @@ export const register = catchAsyncError(async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
-      isAdmin: user.isAdmin,
+      role: user.role, // Include the role in the response
     },
   });
 });
+
 
 // LOGIN
 

@@ -13,6 +13,14 @@ export const getAllUser = catchAsyncError(async (req, res) => {
 });
 
 export const updateUser = catchAsyncError(async (req, res, next) => {
+  
+  if (req.user && req.params.id === req.user._id.toString() && req.body.role) {
+    return res.status(403).json({
+      success: false,
+      message: "You cannot update your own role.",
+    });
+  }
+
   const user = await User.findByIdAndUpdate(
     req.params.id,
     {
@@ -30,6 +38,7 @@ export const updateUser = catchAsyncError(async (req, res, next) => {
     user,
   });
 });
+
 
 export const getSingleUser = catchAsyncError(async (req, res, next) => {
   const getUser = await User.findById(req.params.id);
