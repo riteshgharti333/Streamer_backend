@@ -24,21 +24,11 @@ export const register = catchAsyncError(async (req, res, next) => {
   user = await User.create({
     name,
     email,
-    password: hashedPassword,
+  password: hashedPassword,
     role: 'user', // Default role is 'user'
   });
 
-  // Respond with success message and user info
-  res.status(201).json({
-    success: true,
-    message: "Registered Successfully",
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role, // Include the role in the response
-    },
-  });
+  sendCookie(user, res, `Registered Successfully`, 200);
 });
 
 
